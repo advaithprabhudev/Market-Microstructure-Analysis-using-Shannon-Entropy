@@ -1,0 +1,23 @@
+# Market Microstructure Analysis Framework - Python Dependencies
+# Install with: pip install -r requirements.txt
+
+# Web Framework
+fastapi>=0.111.0
+uvicorn[standard]>=0.30.0
+pydantic>=2.7.0
+pydantic-settings>=2.1.0
+
+# Data and Scientific Computing
+numpy>=1.26.4
+pandas>=2.2.2
+scipy>=1.13.0
+statsmodels>=0.14.2
+
+# Data Fetching
+yfinance>=0.2.40
+
+# Utilities
+python-dotenv>=1.0.1
+
+# Optional: For async support
+aiohttp>=3.9.0

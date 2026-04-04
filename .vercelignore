@@ -1,0 +1,50 @@
+# Version control
+.git
+.gitignore
+.github
+
+# Development
+node_modules
+backend/venv
+.venv
+venv
+ENV
+
+# IDE and OS
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Build artifacts
+backend/__pycache__
+backend/**/__pycache__
+backend/**/*.pyc
+*.egg-info
+.pytest_cache
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Documentation
+*.md
+docs/
+
+# Test files (optional - remove if you want tests in production)
+**/*.test.ts
+**/*.test.js
+**/__tests__
+
+# Temporary
+tmp
+temp
+.claude

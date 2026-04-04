@@ -1,0 +1,46 @@
+{
+  "version": 2,
+  "buildCommand": "cd frontend && npm install && npm run build",
+  "outputDirectory": "frontend/dist",
+  "framework": "vite",
+  "regions": ["iad1"],
+  "env": {
+    "VITE_API_BASE_URL": "@vite_api_base_url"
+  },
+  "envGroups": {
+    "production": ["VITE_API_BASE_URL"]
+  },
+  "functions": {
+    "api/**.py": {
+      "runtime": "python3.11",
+      "memory": 3008,
+      "maxDuration": 60
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/(.+)",
+      "destination": "/api/index.py"
+    }
+  ],
+  "routes": [
+    {
+      "src": "^/api(/.*)?$",
+      "dest": "api/index.py",
+      "methods": ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]
+    },
+    {
+      "src": "^/(?!api).*",
+      "dest": "/index.html",
+      "status": 200
+    }
+  ],
+  "git": {
+    "deploymentEnabled": {
+      "main": true,
+      "master": true
+    }
+  },
+  "devCommand": "npm run dev",
+  "installCommand": "npm install --legacy-peer-deps"
+}
