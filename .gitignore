@@ -1,0 +1,42 @@
+# Python
+backend/venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/**/*.pyc
+*.egg-info/
+*.pyo
+*.pyd
+.env
+.env.local
+.venv
+venv/
+ENV/
+
+# Node
+frontend/node_modules/
+frontend/dist/
+frontend/.env.local
+frontend/.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# Temporary files
+*.png
+*.jpg
+*.jpeg
+tmp/
+temp/
