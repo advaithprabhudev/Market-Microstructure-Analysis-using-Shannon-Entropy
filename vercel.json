@@ -7,9 +7,6 @@
   "env": {
     "VITE_API_BASE_URL": "@vite_api_base_url"
   },
-  "envGroups": {
-    "production": ["VITE_API_BASE_URL"]
-  },
   "functions": {
     "api/**.py": {
       "runtime": "python3.11",
