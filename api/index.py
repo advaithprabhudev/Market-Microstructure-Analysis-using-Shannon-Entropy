@@ -1,32 +1,34 @@
+"""
+FastAPI application wrapper for Vercel serverless environment.
+Vercel's Python runtime expects ASGI apps to be named 'app'.
+"""
+
 import sys
 import os
 from pathlib import Path
 
-# Add backend directory to Python path
-backend_path = str(Path(__file__).parent.parent / "backend")
-if backend_path not in sys.path:
-    sys.path.insert(0, backend_path)
+# Configure Python path
+PROJECT_ROOT = Path(__file__).parent.parent
+BACKEND_DIR = PROJECT_ROOT / "backend"
 
-# Set up environment
-os.environ.setdefault("PYTHONPATH", backend_path)
+if str(BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(BACKEND_DIR))
 
-try:
-    from fastapi import FastAPI
-    from fastapi.middleware.cors import CORSMiddleware
-    from api.routes import analysis, health, tickers
-except ImportError as e:
-    # Debug import issues
-    raise ImportError(f"Failed to import: {e}. sys.path: {sys.path}")
+# Set environment variables
+os.environ.setdefault("PYTHONPATH", str(BACKEND_DIR))
 
-# Create FastAPI app
+# Import FastAPI and components
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+# Create the FastAPI application
 app = FastAPI(
     title="Market Microstructure API",
     version="1.0.0",
     description="Entropy-driven market microstructure analysis",
 )
 
-# Add CORS middleware
-# NOTE: Update allowed_origins with your specific production domains
+# Configure CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -34,8 +36,6 @@ app.add_middleware(
         "http://127.0.0.1:5173",
         "http://localhost:3000",
         "http://localhost:8000",
-        # Production: Replace with your actual Vercel domain
-        # "https://your-project.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
@@ -44,10 +44,34 @@ app.add_middleware(
     max_age=600,
 )
 
-# Include routers
-app.include_router(health.router)
-app.include_router(analysis.router)
-app.include_router(tickers.router)
 
-# Vercel expects 'app' to be exported for ASGI
-# The name 'app' is the standard for serverless Python frameworks
+# Import and include routers
+try:
+    from api.routes import analysis, health, tickers
+
+    app.include_router(health.router)
+    app.include_router(analysis.router)
+    app.include_router(tickers.router)
+except Exception as e:
+    # Log import errors but don't crash - Vercel will show the error
+    import traceback
+    error_msg = f"Failed to load routers: {str(e)}\n{traceback.format_exc()}"
+
+    # Create a fallback error endpoint
+    @app.get("/")
+    async def root():
+        return {"error": error_msg, "status": "import_failed"}
+
+
+# Health check endpoint at root
+@app.get("/health")
+async def health_check():
+    """Simple health check endpoint."""
+    return {
+        "status": "ok",
+        "service": "Market Microstructure API",
+    }
+
+
+# Vercel exports - app is the ASGI application
+# No need to export 'handler' separately, Vercel auto-detects 'app'

@@ -1,13 +1,9 @@
 {
   "version": 2,
-  "public": false,
   "buildCommand": "cd frontend && npm install && npm run build",
   "outputDirectory": "frontend/dist",
   "installCommand": "npm install --legacy-peer-deps",
   "framework": "vite",
-  "env": {
-    "PYTHONUNBUFFERED": "1"
-  },
   "rewrites": [
     {
       "source": "/api/(.*)",
