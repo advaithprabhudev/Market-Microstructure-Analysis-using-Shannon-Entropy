@@ -12,9 +12,9 @@ Vercel handles both automatically through the configuration files provided.
 
 ## Prerequisites
 
-1. Vercel account (free tier available at vercel.com)
+1. Vercel account (free Hobby tier available at vercel.com)
 2. GitHub repository with this code pushed
-3. Project already connected to Vercel dashboard
+3. Project connected to Vercel dashboard
 
 ## File Structure for Deployment
 
@@ -57,27 +57,23 @@ backend/                - FastAPI source code
 
 Vercel will automatically detect vercel.json and use the configuration.
 
-### Step 2: Configure Environment Variables (if needed)
+### Step 2: No Environment Variables Needed
 
-In Vercel dashboard:
+The API client uses a relative path `/api`, which works automatically on Vercel:
+- All API calls go to `/api/*` on the same domain
+- Vercel's rewrites send `/api/*` to the serverless functions
+- No secrets or environment variables needed for basic deployment
 
-1. Go to Project Settings > Environment Variables
-2. Add any needed variables:
-   - `VITE_API_BASE_URL`: URL of the API (auto-filled as your Vercel domain)
-   - Any other configuration needed by the backend
-
-3. Redeploy after adding variables
+If you need custom configuration later, you can add variables in Vercel dashboard > Project Settings > Environment Variables.
 
 ### Step 3: Configure Build Settings
 
-In Vercel dashboard > Project Settings > General:
+Vercel auto-detects from vercel.json. If you need to verify:
 
-- **Build & Development Settings** should show:
-  - Build Command: `cd frontend && npm install && npm run build`
-  - Output Directory: `frontend/dist`
-  - Install Command: `npm install --legacy-peer-deps`
-
-If these are wrong, update them or they will be auto-detected from vercel.json.
+Vercel dashboard > Project Settings > General:
+- **Build Command**: `cd frontend && npm install && npm run build`
+- **Output Directory**: `frontend/dist`
+- **Install Command**: `npm install --legacy-peer-deps`
 
 ## Deployment Configuration Explained
 
@@ -92,7 +88,7 @@ If these are wrong, update them or they will be auto-detected from vercel.json.
   "functions": {
     "api/**.py": {
       "runtime": "python3.11",
-      "memory": 3008,
+      "memory": 2048,
       "maxDuration": 60
     }
   },
@@ -110,9 +106,12 @@ If these are wrong, update them or they will be auto-detected from vercel.json.
 
 - `buildCommand`: What to run to build the project
 - `outputDirectory`: Where the built frontend files are
-- `functions`: Configuration for Python serverless functions (memory, timeout)
+- `framework`: Vite framework (auto-detects React/Vue/Svelte setup)
+- `functions`: Configuration for Python serverless functions
+  - `memory`: 2048 MB (Hobby plan limit). Upgrade to Pro for more.
+  - `maxDuration`: 60 seconds timeout for API calls
 - `rewrites`: Route all /api/* requests to the Python handler
-- `routes`: Fallback routing for SPA (single page application)
+- `routes`: Fallback routing for React SPA
 
 ### api/index.py Structure
 
@@ -120,19 +119,22 @@ This file wraps the FastAPI application for Vercel:
 
 ```python
 import sys
+from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).parent.parent / "backend"))
 
 from fastapi import FastAPI
-# ... import routes ...
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(...)
-# ... middleware and routers ...
+app.add_middleware(CORSMiddleware, ...)
+app.include_router(...)
 
 handler = app  # Vercel serverless function handler
 ```
 
 **Why this wrapper?**:
-- FastAPI is created normally in code
+- FastAPI is created normally
 - Vercel's serverless runtime expects a `handler` object
 - The wrapper exports the app as `handler` for Vercel to invoke
 
@@ -146,6 +148,7 @@ handler = app  # Vercel serverless function handler
 1. Check that sys.path is correctly set in api/index.py
 2. Verify all imports in backend modules use relative paths
 3. Check requirements.txt has all needed dependencies
+4. View build logs in Vercel dashboard > Deployments
 
 ### Issue: API endpoints return 404
 
@@ -163,131 +166,137 @@ handler = app  # Vercel serverless function handler
 **Solution**:
 1. Check that outputDirectory in vercel.json is correct: `frontend/dist`
 2. Verify the catch-all route sends non-API requests to /index.html
-3. Check that frontend build completes successfully
+3. Check that frontend build completes successfully in logs
 
 ### Issue: "Serverless function timeout"
 
-**Cause**: Analysis taking longer than the timeout limit (60 seconds).
+**Cause**: Analysis taking longer than 60 seconds.
 
 **Solution**:
-1. Increase maxDuration in vercel.json functions section
-2. Consider caching results to reduce computation
-3. Optimize analysis algorithms for speed
+1. Upgrade to Pro plan to increase timeout limit
+2. Optimize analysis algorithms for speed
+3. Implement caching to reduce computation
+4. Process requests in smaller batches
 
 ### Issue: CORS errors when calling API from frontend
 
-**Cause**: Frontend and backend on different domains, CORS not configured.
+**Cause**: Frontend and backend on different domains, CORS not properly configured.
 
 **Solution**:
-1. Check CORS middleware in api/index.py includes your Vercel domain
-2. Add https://*.vercel.app to allowed origins
-3. Verify allow_methods includes GET, POST, PUT, DELETE, OPTIONS
+1. Check CORS middleware in api/index.py allows your Vercel domain
+2. Vercel domain format: `https://<project>.vercel.app`
+3. Wildcard `https://*.vercel.app` is included by default
 
-## Environment Variables
+## Memory and Performance
 
-### Production Variables
+### Hobby Plan Limits
 
-Set these in Vercel dashboard > Environment Variables:
+- **Memory**: 2048 MB (current setting)
+- **Timeout**: 60 seconds
+- **Executions**: Pay-as-you-go (minimal cost)
 
-```
-VITE_API_BASE_URL=https://your-project.vercel.app
-```
+### If You Need More
 
-This tells the frontend where to find the API.
+Create a Pro team:
+1. Vercel Dashboard > Settings > Teams
+2. Create a new team
+3. Upgrade to Pro plan
+4. In vercel.json, increase memory to 3008 MB if needed
 
-### Development Variables
+### Performance Tips
 
-For local development, create .env files:
+1. **Reduce Bundle Size**:
+   - Remove unused dependencies
+   - Use tree-shaking with Vite
+   - Check build log for bundle size
 
-**frontend/.env.local**:
-```
-VITE_API_BASE_URL=http://localhost:8000
-```
+2. **Reduce Function Runtime**:
+   - Cache data fetching results
+   - Optimize entropy calculations
+   - Batch multiple ticker requests
 
-**backend/.env**:
-```
-DEBUG=true
-```
+3. **Improve Startup Time**:
+   - Keep dependencies minimal
+   - Use lazy imports for heavy libraries
+   - Monitor cold start times in logs
 
 ## Monitoring and Logs
 
 ### View Deployment Logs
 
-1. Go to Vercel dashboard > Deployments
-2. Click on a deployment
-3. View build logs and runtime logs
+1. Vercel Dashboard > Deployments
+2. Click on a deployment to view build and runtime logs
+3. Check for errors, warnings, or timeout messages
 
 ### Monitor API Performance
 
-1. Vercel dashboard > Analytics
-2. Check request counts, latency, errors
-3. Set up alerts for errors or slowdowns
-
-## Performance Optimization
-
-### Reduce Build Time
-
-1. Use --legacy-peer-deps to skip peer dependency checks
-2. Cache dependencies between builds
-3. Remove unused dependencies
-
-### Reduce Function Size
-
-1. Remove dev dependencies from production (npm install --production)
-2. Consider using lightweight alternatives for heavy libraries
-3. Monitor function bundle size in logs
-
-### Reduce Function Runtime
-
-1. Cache data fetching results
-2. Optimize entropy calculations for speed
-3. Implement request rate limiting
+1. Vercel Dashboard > Analytics
+2. Check request counts, latency, error rates
+3. Set up alerts for errors (requires upgrade)
 
 ## Rollback and Updates
 
 ### Rollback to Previous Deployment
 
-1. Vercel dashboard > Deployments
-2. Click "Promote to Production" on any previous deployment
-3. Confirms and rolls back immediately
+1. Vercel Dashboard > Deployments
+2. Click "Promote to Production" on a previous deployment
+3. Automatic rollback completes instantly
 
 ### Update Application
 
-1. Push changes to GitHub
-2. Vercel automatically redeploys main/master branch
-3. Check deployment status in Vercel dashboard
+1. Push changes to GitHub (main or master branch)
+2. Vercel automatically redeploys
+3. View deployment status in dashboard
 
 ## Custom Domain
 
-1. Vercel dashboard > Project Settings > Domains
+1. Vercel Dashboard > Project Settings > Domains
 2. Add your custom domain
-3. Update DNS records as instructed
+3. Follow DNS instructions
 4. DNS propagation takes 5-30 minutes
 
-## Billing Considerations
+## Billing and Pricing
 
-Vercel's free tier includes:
-- Unlimited static site deployments
-- 100 serverless function invocations per day
-- 6 hours total function runtime per month
+**Hobby Plan (Free)**:
+- Unlimited deployments
+- Unlimited static sites
+- 100 GB bandwidth per month
+- Serverless functions with 2048 MB memory
+- 60-second timeout per function
 
-For high usage:
-- Upgrade to Pro plan for higher limits
-- Consider caching to reduce function calls
-- Implement request batching
+**Pro Plan** (upgrade when needed):
+- Everything in Hobby, plus:
+- 3008 MB memory for functions
+- 900-second timeout per function
+- Priority support
 
-## Next Steps
+## Next Steps After Deployment
 
-After deployment:
-
-1. Test all features work on production domain
+1. Test all features on the production domain
 2. Monitor logs for errors
-3. Set up custom domain if desired
-4. Configure CI/CD for automated deployments
-5. Set up monitoring and alerts
+3. Set up a custom domain if desired
+4. Configure monitoring and alerts
+5. Test with different portfolios and timeframes
+
+## Environment-Specific Behavior
+
+### Development (Local)
+
+```
+Frontend (localhost:5173) → Vite proxy → Backend (localhost:8000)
+```
+
+### Production (Vercel)
+
+```
+Frontend (vercel.app) → /api rewrites → Serverless function (vercel.app/api/*)
+```
+
+Both use the same `/api` relative path in the code, so no code changes needed.
 
 ## References
 
 - Vercel Documentation: https://vercel.com/docs
 - FastAPI with Vercel: https://vercel.com/guides/deploying-fastapi-with-vercel
-- Next.js/React Deployment: https://vercel.com/docs/frameworks/react
+- React with Vite: https://vitejs.dev/guide/
+- Troubleshooting: https://vercel.com/support
