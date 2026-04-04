@@ -16,6 +16,7 @@ app = FastAPI(
 )
 
 # Add CORS middleware
+# NOTE: Update allowed_origins with your specific production domains
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -23,13 +24,13 @@ app.add_middleware(
         "http://127.0.0.1:5173",
         "http://localhost:3000",
         "http://localhost:8000",
-        "https://*.vercel.app",
-        "https://*.netlify.app",
+        # Production: Replace with your actual Vercel domain
+        # "https://your-project.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["*"],
-    expose_headers=["*"],
+    allow_headers=["Content-Type"],
+    expose_headers=["Content-Type"],
     max_age=600,
 )
 

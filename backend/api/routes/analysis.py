@@ -177,13 +177,9 @@ async def analyze_portfolio(request: PortfolioRequest):
         weights = [tw.weight for tw in request.tickers]
         config = request.config
 
-        print(f"[DEBUG] Analyzing tickers: {tickers}")
-
         # Fetch market data
         fetcher = YFinanceFetcher(period=config.period)
         data_map, fetch_errors = fetcher.fetch_portfolio(tickers)
-
-        print(f"[DEBUG] Fetched data for: {list(data_map.keys())}, Errors: {fetch_errors}")
 
         if not data_map:
             raise HTTPException(
@@ -318,10 +314,7 @@ async def analyze_portfolio(request: PortfolioRequest):
         )
 
     except Exception as e:
-        print(f"[ERROR] Analysis failed: {str(e)}")
-        import traceback
-        traceback.print_exc()
         raise HTTPException(
             status_code=500,
-            detail=f"Analysis failed: {str(e)}"
+            detail="Analysis failed. Please verify your input and try again."
         )
