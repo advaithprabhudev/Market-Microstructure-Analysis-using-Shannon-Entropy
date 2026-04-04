@@ -3,30 +3,19 @@
   "buildCommand": "cd frontend && npm install && npm run build",
   "outputDirectory": "frontend/dist",
   "framework": "vite",
-  "regions": ["iad1"],
   "functions": {
-    "api/**.py": {
-      "runtime": "python3.11",
-      "memory": 2048,
-      "maxDuration": 60
+    "api/index.py": {
+      "runtime": "python3.11"
     }
   },
-  "rewrites": [
-    {
-      "source": "/api/(.+)",
-      "destination": "/api/index.py"
-    }
-  ],
   "routes": [
     {
-      "src": "^/api(/.*)?$",
-      "dest": "api/index.py",
-      "methods": ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]
+      "src": "/api/(.*)",
+      "dest": "/api/index.py"
     },
     {
-      "src": "^/(?!api).*",
-      "dest": "/index.html",
-      "status": 200
+      "src": "/(.*)",
+      "dest": "/index.html"
     }
   ],
   "git": {
