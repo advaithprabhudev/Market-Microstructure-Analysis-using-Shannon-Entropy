@@ -1,12 +1,22 @@
 import sys
+import os
 from pathlib import Path
 
-# Add backend directory to Python path so imports work
-sys.path.insert(0, str(Path(__file__).parent.parent / "backend"))
+# Add backend directory to Python path
+backend_path = str(Path(__file__).parent.parent / "backend")
+if backend_path not in sys.path:
+    sys.path.insert(0, backend_path)
 
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from api.routes import analysis, health, tickers
+# Set up environment
+os.environ.setdefault("PYTHONPATH", backend_path)
+
+try:
+    from fastapi import FastAPI
+    from fastapi.middleware.cors import CORSMiddleware
+    from api.routes import analysis, health, tickers
+except ImportError as e:
+    # Debug import issues
+    raise ImportError(f"Failed to import: {e}. sys.path: {sys.path}")
 
 # Create FastAPI app
 app = FastAPI(
@@ -39,6 +49,5 @@ app.include_router(health.router)
 app.include_router(analysis.router)
 app.include_router(tickers.router)
 
-
-# Export the FastAPI app as a handler for Vercel
-handler = app
+# Vercel expects 'app' to be exported for ASGI
+# The name 'app' is the standard for serverless Python frameworks
